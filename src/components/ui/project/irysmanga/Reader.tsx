@@ -164,33 +164,31 @@ function Reader({
     }, [fitMode]);
     // eslint-enable
 
-    let displayedPages: React.JSX.Element[] = [];
-    if (mangaData.chapters[chapter]) {
-        const currentChapter = mangaData.chapters[chapter];
-        const maxPageCount = currentChapter.pageCount;
-        // Use optimized pages if we have them, otherwise fall back to unoptimized I guess.
-        const currentPages =
-            optimizedImages.get(currentChapter.title) ?? currentChapter.pages;
-        /* eslint-disable */
-        const getClassNames = (i: number) => {
-            const blockStyle =
-                pageLayout === "single"
-                    ? {
-                          block: i === page,
-                          hidden: i !== page,
-                      }
-                    : {
-                          block: true,
-                      };
-            const containerStyle = loading[i] ? "min-h-full" : "";
+	let displayedPages: React.JSX.Element[] = [];
+	if (mangaData.chapters[chapter]) {
+		const currentChapter = mangaData.chapters[chapter];
+		const maxPageCount = currentChapter.pageCount;
+		// Use optimized pages if we have them, otherwise fall back to unoptimized I guess.
+		const currentPages =
+			optimizedImages.get(currentChapter.title) ?? currentChapter.pages;
+		const getClassNames = (i: number) => {
+			const blockStyle =
+				pageLayout === "single"
+					? {
+						block: i === page,
+						hidden: i !== page,
+					}
+					: {
+						block: true,
+					};
+			const containerStyle = loading[i] ? "min-h-full" : "";
 
-            return classNames(containerStyle, blockStyle, {
-                [styles.pageHeight]: fitMode === "height",
-                [styles.pageWidth]: fitMode === "width",
-                [styles.pageMedium]: fitMode === "original",
-            });
-        };
-        // eslint-enable
+			return classNames(containerStyle, blockStyle, {
+				[styles.pageHeight]: fitMode === "height",
+				[styles.pageWidth]: fitMode === "width",
+				[styles.pageMedium]: fitMode === "original",
+			});
+		};
 
         displayedPages = Array.from({ length: maxPageCount }, (_, i) => (
             <div
@@ -219,25 +217,24 @@ function Reader({
                 {loading[i] && <LoadingIcon></LoadingIcon>}
             </div>
         ));
-    }
-    /* eslint-disable */
-    return (
-        <div className="flex flex-col h-screen relative grow bg-base-100 transition-colors">
-            <ReaderHeader setOpenSidebar={setOpenSidebar}></ReaderHeader>
-            <div
-                ref={containerRef}
-                className={styles.pageContainer}
-                onClick={handleClick}
-                onScroll={handleScroll}
-            >
-                {displayedPages}
-            </div>
-            <div className="absolute bottom-0 left-0 w-full">
-                <ProgressBar></ProgressBar>
-            </div>
-        </div>
-    );
-    // eslint-enable
+	}
+
+	return (
+		<div className="flex flex-col h-screen relative grow bg-base-100 transition-colors">
+			<ReaderHeader setOpenSidebar={setOpenSidebar}></ReaderHeader>
+			<div
+				ref={containerRef}
+				className={styles.pageContainer}
+				onClick={handleClick}
+				onScroll={handleScroll}
+			>
+				{displayedPages}
+			</div>
+			<div className="absolute bottom-0 left-0 w-full">
+				<ProgressBar />
+			</div>
+		</div>
+	);
 }
 
 export default Reader;
