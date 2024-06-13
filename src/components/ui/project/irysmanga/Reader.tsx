@@ -43,7 +43,7 @@ function Reader({
 	const pageScrolled = useRef(false);
 	const scriptedScroll = useRef(false);
 	const [loading, setLoading] = useState<boolean[]>(
-		[...Array(mangaData.chapters[chapter].pageCount)].fill(true),
+		Array(mangaData.chapters[chapter].pageCount).fill(true),
 	);
 
 	// Sets the scrollbar to the correct position on page change
@@ -191,32 +191,32 @@ function Reader({
 		};
 
         displayedPages = Array.from({ length: maxPageCount }, (_, i) => (
-            <div
-                className={getClassNames(i) + " relative"}
-                ref={(el) => {
-                    pageRefs.current[i] = el as HTMLImageElement;
-                }}
-                key={`page ${i}`}
-            >
-                <Image
-                    key={i}
-                    src={currentPages[i]}
-                    quality={100}
-                    className={getClassNames(i) + " " + styles.page}
-                    priority={getPriority(i, page)}
-                    alt={`Page ${i + 1}`}
-                    width={"0"}
-                    height={1080}
-                    style={{ opacity: loading[i] ? "0" : "1" }}
-                    onLoad={() => {
-                        let newLoading = [...loading];
-                        newLoading[i] = false;
-                        setLoading(newLoading);
-                    }}
-                />
-                {loading[i] && <LoadingIcon></LoadingIcon>}
-            </div>
-        ));
+			<div
+				className={getClassNames(i) + " relative"}
+				ref={(el) => {
+					pageRefs.current[i] = el as HTMLImageElement;
+				}}
+				key={`page ${i}`}
+			>
+				{loading[i] && <LoadingIcon></LoadingIcon>}
+				<Image
+					key={i}
+					src={currentPages[i]}
+					quality={100}
+					className={getClassNames(i) + " " + styles.page}
+					priority={getPriority(i, page)}
+					alt={`Page ${i + 1}`}
+					width={"0"}
+					height={1080}
+					style={{ opacity: loading[i] ? "0" : "1" }}
+					onLoad={() => {
+						setLoading((currentLoading) =>
+							currentLoading.map((curr, index) => index === i ? false : curr)
+						);
+					}}
+				/>
+			</div>
+		));
 	}
 
 	return (
