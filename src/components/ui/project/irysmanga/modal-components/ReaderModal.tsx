@@ -9,6 +9,7 @@ import ModalTabReader from './ModalTabReader';
 import { getNextOption } from '../utils/helper';
 import { useMangaContext } from '../context/MangaContext';
 import ThemeController from './ThemeController';
+import ModalTabLisences from './ModalTabLisences';
 
 interface IProps {
 	modalRef: RefObject<HTMLDialogElement>;
@@ -18,9 +19,9 @@ export default function ReaderModal({ modalRef }: IProps) {
 	const [selected, setSelected] = useState('General');
 	const { readerLanguage, setReaderLanguage } = useMangaContext();
 	const { t } = useTranslation('reader');
-	const options = ['General', 'Story', 'Reader'];
+	const options = ['General', 'Story', 'Reader', 'Lisences'];
 	return (
-		<dialog id="info_modal" className="modal bg-gradient-to-r" ref={modalRef}>
+		<dialog id="info_modal" className="modal" ref={modalRef}>
 			<div className="modal-box flex h-[90%] min-w-[50%] max-w-[70%] flex-col justify-between overflow-hidden">
 				<div className="flex max-h-[87%] grow flex-col">
 					<div className="tabs-lifted flex self-center">
@@ -39,11 +40,17 @@ export default function ReaderModal({ modalRef }: IProps) {
 							selected={selected}
 							setSelected={setSelected}
 						/>
+						<ModalTab
+							label={options[3]}
+							selected={selected}
+							setSelected={setSelected}
+						/>
 					</div>
 
 					{selected === 'General' && <ModalTabGeneral />}
 					{selected === 'Story' && <ModalTabStory />}
 					{selected === 'Reader' && <ModalTabReader />}
+					{selected === 'Lisences' && <ModalTabLisences />}
 				</div>
 				<div className="modal-action flex items-center justify-between">
 					<div className="self-start">
@@ -62,18 +69,18 @@ export default function ReaderModal({ modalRef }: IProps) {
 							type="button"
 							className="flex h-12 min-h-12 items-center gap-2 whitespace-nowrap rounded-md bg-skin-primary p-4 text-sm font-semibold leading-4 text-skin-primary-foreground transition-all hover:bg-[color-mix(in_srgb,rgb(var(--color-primary))_90%,black)] disabled:cursor-not-allowed disabled:bg-[color-mix(in_srgb,rgb(var(--color-primary))_90%,black)] dark:bg-skin-primary-dark dark:text-skin-primary-foreground-dark dark:hover:bg-[color-mix(in_srgb,rgb(var(--color-primary-dark))_90%,black)]"
 							onClick={() => setSelected(getNextOption(selected, options.toReversed()))}
-							disabled={selected === 'General'}
+							disabled={selected === options[0]}
 						>
 							{t('back')}
 						</button>
 						<button
 							type="button"
 							className="flex h-12 min-h-12 items-center gap-2 whitespace-nowrap rounded-md bg-skin-primary p-4 text-sm font-semibold leading-4 text-skin-primary-foreground transition-all hover:bg-[color-mix(in_srgb,rgb(var(--color-primary))_90%,black)] disabled:cursor-not-allowed disabled:bg-[color-mix(in_srgb,rgb(var(--color-primary))_90%,black)] dark:bg-skin-primary-dark dark:text-skin-primary-foreground-dark dark:hover:bg-[color-mix(in_srgb,rgb(var(--color-primary-dark))_90%,black)]"
-							onClick={() => (selected === 'Reader'
+							onClick={() => (selected === options[options.length - 1]
 								? modalRef.current?.close()
 								: setSelected(getNextOption(selected, options)))}
 						>
-							{selected === 'Reader' ? t('close') : t('next')}
+							{selected === options[options.length - 1] ? t('close') : t('next')}
 						</button>
 					</div>
 				</div>
