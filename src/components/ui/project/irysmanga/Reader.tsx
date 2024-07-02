@@ -62,6 +62,8 @@ export default function Reader({
 		isScrollCausedByUserScroll.current = false;
 	}, 100), []);
 
+	const [translateX, setTranslateX] = useState<string>();
+
 	/**
 	 * Update the page counter when the user scrolls.
 	 * It chooses the page that has the closest middle point to the container's middle point
@@ -105,6 +107,30 @@ export default function Reader({
 	 */
 	const getPriority = (numPages: number, pg: number): boolean => Math.abs(numPages - pg) <= 3;
 
+	const turnPageLeft = () => {
+		const diff = (pageLayout === 'ltr' || pageLayout === 'long') ? -1 : 1;
+		handlePageNavigation(
+			page + diff,
+			setPage,
+			setChapter,
+			chapter,
+			mangaLanguage,
+			manga,
+		);
+	};
+
+	const turnPageRight = () => {
+		const diff = (pageLayout === 'ltr' || pageLayout === 'long') ? 1 : -1;
+		handlePageNavigation(
+			page + diff,
+			setPage,
+			setChapter,
+			chapter,
+			mangaLanguage,
+			manga,
+		);
+	};
+
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
 		const { clientX, target } = event;
@@ -121,25 +147,9 @@ export default function Reader({
 		const position = clientX - left;
 		const threshold = width / 2;
 		if (position < threshold) {
-			const diff = (pageLayout === 'ltr' || pageLayout === 'long') ? -1 : 1;
-			handlePageNavigation(
-				page + diff,
-				setPage,
-				setChapter,
-				chapter,
-				mangaLanguage,
-				manga,
-			);
+			turnPageLeft();
 		} else {
-			const diff = (pageLayout === 'ltr' || pageLayout === 'long') ? 1 : -1;
-			handlePageNavigation(
-				page + diff,
-				setPage,
-				setChapter,
-				chapter,
-				mangaLanguage,
-				manga,
-			);
+			turnPageRight();
 		}
 	};
 
@@ -198,20 +208,21 @@ export default function Reader({
 			const fitStyle = {
 				// For height mode, we force the image to fit on the y-axis and then get width to scale
 				// using manual calculations. Width will overflow on the container-level if necessary.
-				'max-w-full w-full h-full overflow-x-auto': fitMode === 'height',
+				'max-w-full h-full overflow-x-auto': fitMode === 'height',
 
 				// For width mode, we force the image to fit on the x-axis and then get height to scale.
 				// Note that height should overflow to the parent level.
 				'w-full h-auto overflow-x-auto overflow-y-visible': fitMode === 'width',
 
 				// Basically, overflow on width and then let the outer parent handle height.
-				'max-w-full w-full h-max overflow-x-auto overflow-y-visible ': fitMode === 'original',
+				'max-w-full h-max overflow-x-auto overflow-y-visible ': fitMode === 'original',
 
 				// Cap on container width and height; we use object-cover on the child to then make it fit.
-				'max-w-full w-full max-h-full overflow-auto': fitMode === 'fit-both',
+				'max-w-full max-h-full overflow-auto': fitMode === 'fit-both',
 			};
+			const widthStyle = pageLayout !== 'long' ? 'w-full' : '';
 
-			return classNames(blockStyle, fitStyle, 'relative flex shrink-0');
+			return classNames(blockStyle, fitStyle, 'relative flex shrink-0', widthStyle);
 		};
 
 		/**
@@ -273,7 +284,7 @@ export default function Reader({
 					style={{
 						scrollbarWidth: 'none',
 						msOverflowStyle: 'none',
-						transform: pageLayout !== 'long' ? `translateX(-${page * 100}%)` : '',
+						transform: `translateX(${translateX})`,
 					}}
 				>
 					{loading[i] && <LoadingIcon />}
@@ -323,15 +334,39 @@ export default function Reader({
 	}, [containerRef, fitMode]);
 
 	// Swipe settings
-	const handlers = useSwipeable({
-		trackMouse: true,
-		onSwipedLeft: () => { if (pageLayout !== 'long') { setPage(page + 1); } },
-		onSwipedRight: () => { if (pageLayout !== 'long') { setPage(page - 1); } },
-	});
+	let translateDirection = 0;
+	if (pageLayout === 'ltr') {
+		translateDirection = -1;
+	} else {
+		translateDirection = 1;
+	}
+	const handlers = useSwipeable(
+		{
+			trackMouse: true,
+			onSwiped: (eventData) => {
+				if (pageLayout === 'long') return;
+				if (Math.abs(eventData.deltaX) < Math.abs(eventData.deltaY)) return;
+				const threshold = 100;
+				if (eventData.deltaX >= threshold) {
+					turnPageLeft();
+				} else if (eventData.deltaX <= -threshold) {
+					turnPageRight();
+				}
+			},
+		},
+	);
+
+	useEffect(() => {
+		setTranslateX(`${page * 100 * translateDirection}%`);
+	}, [page, pageLayout, translateDirection]);
 
 	// In order to be able to swipe (in single page layout)
 	// we need to line every pages next to each other
-	const getFlexStyle = () => (pageLayout !== 'long' ? 'flex' : 'flex flex-col gap-[10px]');
+	const getFlexStyle = () => classNames({
+		'flex-row': pageLayout === 'ltr',
+		'flex-row-reverse': pageLayout === 'rtl',
+		'flex-col gap-[10px]': pageLayout === 'long',
+	});
 
 	return (
 		<div className="relative flex max-h-full max-w-full grow flex-col overflow-hidden">
@@ -350,8 +385,7 @@ export default function Reader({
 						&& (pageRefs.current[page]
 							&& containerDimensions.height > pageRefs.current[page].clientHeight),
 				})}
-				// Disabling click for now to test out swiping on desktop
-				// onClick={handleClick}
+				onClick={handleClick}
 				onScroll={handleScroll}
 			>
 				{displayedPages}
