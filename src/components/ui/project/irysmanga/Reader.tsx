@@ -6,6 +6,7 @@ import NextImage from 'next/image';
 import React, {
 	useEffect, useMemo, useRef, useState,
 } from 'react';
+import { useSwipeable } from 'react-swipeable';
 import { useMangaContext } from './context/MangaContext';
 import { handlePageNavigation } from './utils/helper';
 import ProgressBar from './ProgressBar';
@@ -104,7 +105,7 @@ export default function Reader({
 	 */
 	const getPriority = (numPages: number, pg: number): boolean => Math.abs(numPages - pg) <= 3;
 
-	// Handle page turn on click
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
 		const { clientX, target } = event;
 		const { left, width } = (target as HTMLElement).getBoundingClientRect();
@@ -192,32 +193,22 @@ export default function Reader({
 		/**
 		 * Returns class names for the page _container_.
 		 */
-		const getClassNamesContainer = (i: number) => {
-			const blockStyle = (
-				pageLayout !== 'long'
-					? {
-						block: i === page,
-						hidden: i !== page,
-					}
-					: {
-						block: true,
-					}
-			);
-
+		const getClassNamesContainer = () => {
+			const blockStyle = 'block';
 			const fitStyle = {
 				// For height mode, we force the image to fit on the y-axis and then get width to scale
 				// using manual calculations. Width will overflow on the container-level if necessary.
-				'max-w-full h-full overflow-x-auto': fitMode === 'height',
+				'max-w-full w-full h-full overflow-x-auto': fitMode === 'height',
 
 				// For width mode, we force the image to fit on the x-axis and then get height to scale.
 				// Note that height should overflow to the parent level.
 				'w-full h-auto overflow-x-auto overflow-y-visible': fitMode === 'width',
 
 				// Basically, overflow on width and then let the outer parent handle height.
-				'max-w-full h-max overflow-x-auto overflow-y-visible ': fitMode === 'original',
+				'max-w-full w-full h-max overflow-x-auto overflow-y-visible ': fitMode === 'original',
 
 				// Cap on container width and height; we use object-cover on the child to then make it fit.
-				'max-w-full max-h-full overflow-auto': fitMode === 'fit-both',
+				'max-w-full w-full max-h-full overflow-auto': fitMode === 'fit-both',
 			};
 
 			return classNames(blockStyle, fitStyle, 'relative flex shrink-0');
@@ -235,7 +226,7 @@ export default function Reader({
 				'w-full h-auto': fitMode === 'width',
 			};
 
-			return classNames(fitStyle);
+			return classNames(fitStyle, 'm-auto');
 		};
 
 		/**
@@ -274,13 +265,15 @@ export default function Reader({
 
 			return (
 				<div
-					className={`${getClassNamesContainer(i)}`}
+					className={`${getClassNamesContainer()} transition-all`}
 					key={`page-${i}`}
 					ref={(el) => {
 						pageRefs.current[i] = el as HTMLImageElement;
 					}}
 					style={{
-						scrollbarWidth: 'none', msOverflowStyle: 'none',
+						scrollbarWidth: 'none',
+						msOverflowStyle: 'none',
+						transform: pageLayout !== 'long' ? `translateX(-${page * 100}%)` : '',
 					}}
 				>
 					{loading[i] && <LoadingIcon />}
@@ -294,6 +287,7 @@ export default function Reader({
 						height={imageSizes[i].height}
 						style={{
 							opacity: loading[i] ? '0' : '1', ...fitStyles,
+
 						}}
 						onLoad={(ele) => {
 							setLoading((currentLoading) => currentLoading
@@ -303,6 +297,7 @@ export default function Reader({
 							// eslint-disable-next-line max-len, implicit-arrow-linebreak
 							setImageSizes((currentImageSizes) => currentImageSizes.map((curr, idx) => (idx === i ? { width: originalImage.naturalWidth, height: originalImage.naturalHeight } : curr)));
 						}}
+						draggable={false} // Disable drag to test swiping on desktop
 					/>
 				</div>
 			);
@@ -327,14 +322,27 @@ export default function Reader({
 		};
 	}, [containerRef, fitMode]);
 
+	// Swipe settings
+	const handlers = useSwipeable({
+		trackMouse: true,
+		onSwipedLeft: () => { if (pageLayout !== 'long') { setPage(page + 1); } },
+		onSwipedRight: () => { if (pageLayout !== 'long') { setPage(page - 1); } },
+	});
+
+	// In order to be able to swipe (in single page layout)
+	// we need to line every pages next to each other
+	const getFlexStyle = () => (pageLayout !== 'long' ? 'flex' : 'flex flex-col gap-[10px]');
+
 	return (
 		<div className="relative flex max-h-full max-w-full grow flex-col overflow-hidden">
 			<ReaderHeader openSidebar={openSidebar} setOpenSidebar={setOpenSidebar} />
 			{/* eslint-disable-next-line max-len */}
 			{/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
 			<div
+				// eslint-disable-next-line react/jsx-props-no-spreading
+				{...handlers}
 				ref={containerRef}
-				className={classNames(styles.pagesWrapper, {
+				className={classNames(styles.pagesWrapper, getFlexStyle(), {
 					// We add this check as without it vertical scrolling can break. As such, this
 					// disables it if scrolling is required!
 					'justify-center':
@@ -342,7 +350,8 @@ export default function Reader({
 						&& (pageRefs.current[page]
 							&& containerDimensions.height > pageRefs.current[page].clientHeight),
 				})}
-				onClick={handleClick}
+				// Disabling click for now to test out swiping on desktop
+				// onClick={handleClick}
 				onScroll={handleScroll}
 			>
 				{displayedPages}
